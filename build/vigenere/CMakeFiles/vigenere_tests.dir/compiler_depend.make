@@ -812,6 +812,7 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/tuple \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/type_traits \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/typeinfo \
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_map \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/utility \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/vector \
@@ -997,7 +998,9 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdarg.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stddef.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdint.h \
-  /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/vigenere.hpp \
+  /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/alphabet.hpp \
+  /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/segmenter.hpp \
+  /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/vigenere.hpp \
   /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/tests/doctest.h
 
 
@@ -1114,6 +1117,8 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_mach_port_t.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_intptr_t.h:
+
+/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/alphabet.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_int64_t.h:
 
@@ -1234,6 +1239,8 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/vector:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set:
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_map:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/typeinfo:
 
@@ -2197,6 +2204,8 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/dependent_type.h:
 
+/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/vigenere.hpp:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/messages.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__atomic/support/c11.h:
@@ -2549,6 +2558,8 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_remove.h:
 
+/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/segmenter.hpp:
+
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__bit/popcount.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_fd_def.h:
@@ -2640,8 +2651,6 @@ vigenere/CMakeFiles/vigenere_tests.dir/tests/test_vigenere.cpp.o: /Users/nicolas
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__atomic/atomic_sync.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_remove_copy.h:
-
-/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/vigenere.hpp:
 
 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_header_macro.h:
 

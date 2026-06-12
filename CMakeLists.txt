@@ -5,6 +5,8 @@ project(
   VERSION 0.0.0
   LANGUAGES CXX C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(PROJECT_CXX_STANDARD
     23
     CACHE STRING "C++ standard, available option: 20, 23")
@@ -15,6 +17,8 @@ set(PROJECT_TOPIC
     CACHE STRING "Project topic, please select one of QRCODE, VIGENERE, PI")
 set_property(CACHE PROJECT_TOPIC PROPERTY STRINGS NOT_SELECTED QRCODE VIGENERE
                                           PI)
+
+enable_testing()
 
 if(PROJECT_TOPIC STREQUAL NOT_SELECTED)
   message(FATAL_ERROR "Please select a topic.")

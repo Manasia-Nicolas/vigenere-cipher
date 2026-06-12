@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/vigenere.dir/main.cpp.o"
-  "CMakeFiles/vigenere.dir/main.cpp.o.d"
+  "CMakeFiles/vigenere.dir/src/main.cpp.o"
+  "CMakeFiles/vigenere.dir/src/main.cpp.o.d"
   "vigenere"
   "vigenere.pdb"
 )

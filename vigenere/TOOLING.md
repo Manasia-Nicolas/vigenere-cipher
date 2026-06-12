@@ -7,22 +7,26 @@ top-level `CMakeLists.txt`).
 
 ```
 vigenere/
-  vigenere.hpp        Alphabet + VignereCypher (all logic, header-only)
-  main.cpp            CLI front-end
+  src/
+    alphabet.hpp      alphabet symbols, UTF-8 conversion, language frequencies
+    vigenere.hpp      VigenereCypher encryption and cracking logic
+    segmenter.hpp     dynamic-programming word-boundary recovery
+    main.cpp          CLI front-end
   tests/
     doctest.h         single-header test framework (vendored)
     test_vigenere.cpp unit + integration tests
   bench/
     bench_vigenere.cpp  scaling benchmark (no framework)
+  data/               sample encrypted text files
   .clang-format       formatting rules
   .clang-tidy         static-analysis checks
 ```
 
-Splitting the logic into `vigenere.hpp` is what makes all three activities
-possible: tests and the benchmark `#include` the header directly, and the
-cracking building blocks (`FindLengthKasiski`, `FindLengthFriedman`,
-`FrequentAnalysis`, `CountDictionaryWords`, `KeyToText`) are `public static`
-so they can be tested and benchmarked in isolation, not only through `Crack`.
+Splitting the logic into the three headers makes all three activities possible:
+tests and the benchmark include the relevant headers directly, and the cracking
+building blocks (`FindLengthKasiski`, `FindLengthFriedman`, `FrequentAnalysis`,
+and `CountDictionaryWords`) are `public static` so they can be tested and
+benchmarked in isolation, not only through `Crack`.
 
 ## 1. Unit testing — doctest + CTest
 
@@ -37,16 +41,22 @@ ctest --test-dir build/vigenere --output-on-failure
 The suite (`tests/test_vigenere.cpp`) covers:
 
 - **Alphabet**: sizes, UTF-8 `SymbolToChar`/`CharToSymbol` round-trips,
-  `ExtractLetters`, dictionary `LetterFrequencies`, and the cache logic in
-  `LoadFrequencies` (valid cache reused; empty / garbage / wrong-alphabet
+  `ExtractLetters`, dictionary `LetterFrequencies`, and construction-time
+  frequency loading (valid cache reused; empty / garbage / wrong-alphabet
   caches rejected and recomputed).
 - **Cipher**: `encode`/`decode` round trips (including German umlauts in both
-  text and key), the length-changing shift `Z + B = Ä`, and the empty-key
-  exception.
+  text and key), the standard `ATTACKATDAWN` known-answer example,
+  alternate-key and empty-input cases, the length-changing shift `Z + B = Ä`,
+  and the empty-key exception.
 - **Key length**: Kasiski and Friedman agree with the true length for several
   keys; a Caesar cipher is detected as length 1.
 - **Full crack**: all English key lengths 1–10, German keys including the
   all-umlaut `ÄÖÜß`, the four sample files, and short-text (tie-breaker) cases.
+- **Word segmentation**: dictionary-only and unigram cost models, unknown
+  symbols, empty input, German UTF-8 symbols, controlled unigram normalization,
+  and cracking then segmenting spaceless text.
+- **CLI integration**: normal and spaceless sample files run through the built
+  executable, verifying the organized `data/` paths and expected output.
 
 The test target runs with the repo root as its working directory (set via
 `WORKING_DIRECTORY` in CMake), so it reads the same data files as the program.
@@ -69,8 +79,8 @@ Static analysis (install LLVM first: `brew install llvm`, which provides
 `clang-tidy`):
 
 ```sh
-clang-tidy vigenere/vigenere.hpp -- -std=c++23 -x c++
-clang-tidy vigenere/main.cpp     -- -std=c++23
+clang-tidy -p build vigenere/src/main.cpp
+clang-tidy -p build vigenere/src/*.hpp
 ```
 
 Enabled check groups are in `.clang-tidy` (`bugprone`, `performance`,
@@ -81,8 +91,10 @@ the zeroth-cost linter and currently passes with no warnings.
 Formatting (`brew install clang-format`):
 
 ```sh
-clang-format --dry-run --Werror vigenere/main.cpp vigenere/vigenere.hpp  # check
-clang-format -i vigenere/main.cpp vigenere/vigenere.hpp                  # apply
+clang-format --dry-run --Werror vigenere/src/*.cpp vigenere/src/*.hpp \
+  vigenere/{tests/test_vigenere.cpp,bench/bench_vigenere.cpp}  # check
+clang-format -i vigenere/src/*.cpp vigenere/src/*.hpp \
+  vigenere/{tests/test_vigenere.cpp,bench/bench_vigenere.cpp}  # apply
 ```
 
 Rules are in `.clang-format` (LLVM base, 4-space indent, 100-column limit).
@@ -112,7 +124,7 @@ Example (Apple Silicon, -O2):
 ### Whole-program timing (`brew install hyperfine`)
 
 ```sh
-hyperfine --warmup 2 './build/vigenere/vigenere en vigenere/long-encrypted.txt'
+hyperfine --warmup 2 './build/vigenere/vigenere en vigenere/data/long-encrypted.txt'
 ```
 
 End-to-end this is ~30 ms, **dominated by reading the ~3 MB wordlist**, not by
@@ -126,4 +138,4 @@ similar; the remaining win would require loading the word list lazily.
 macOS ships Instruments (Time Profiler template) with Xcode; build with
 `-O2 -g` and profile the `vigenere` binary. A lighter alternative is
 `samply` (`brew install samply`): `samply record ./build/vigenere/vigenere en
-vigenere/long-encrypted.txt`, which opens the Firefox Profiler UI.
+vigenere/data/long-encrypted.txt`, which opens the Firefox Profiler UI.

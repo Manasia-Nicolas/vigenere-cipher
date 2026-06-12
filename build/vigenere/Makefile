@@ -65,6 +65,16 @@ CMAKE_BINARY_DIR = /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/buil
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target test
+test:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running tests..."
+	/opt/homebrew/bin/ctest $(ARGS)
+.PHONY : test
+
+# Special rule for the target test
+test/fast: test
+.PHONY : test/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running CMake cache editor..."
@@ -189,29 +199,29 @@ bench/bench_vigenere.cpp.s:
 	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_bench.dir/build.make vigenere/CMakeFiles/vigenere_bench.dir/bench/bench_vigenere.cpp.s
 .PHONY : bench/bench_vigenere.cpp.s
 
-main.o: main.cpp.o
-.PHONY : main.o
+src/main.o: src/main.cpp.o
+.PHONY : src/main.o
 
 # target to build an object file
-main.cpp.o:
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/main.cpp.o
-.PHONY : main.cpp.o
+src/main.cpp.o:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o
+.PHONY : src/main.cpp.o
 
-main.i: main.cpp.i
-.PHONY : main.i
+src/main.i: src/main.cpp.i
+.PHONY : src/main.i
 
 # target to preprocess a source file
-main.cpp.i:
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/main.cpp.i
-.PHONY : main.cpp.i
+src/main.cpp.i:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/src/main.cpp.i
+.PHONY : src/main.cpp.i
 
-main.s: main.cpp.s
-.PHONY : main.s
+src/main.s: src/main.cpp.s
+.PHONY : src/main.s
 
 # target to generate assembly for a file
-main.cpp.s:
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/main.cpp.s
-.PHONY : main.cpp.s
+src/main.cpp.s:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere.dir/build.make vigenere/CMakeFiles/vigenere.dir/src/main.cpp.s
+.PHONY : src/main.cpp.s
 
 tests/test_vigenere.o: tests/test_vigenere.cpp.o
 .PHONY : tests/test_vigenere.o
@@ -246,15 +256,16 @@ help:
 	@echo "... codegen"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... test"
 	@echo "... vigenere"
 	@echo "... vigenere_bench"
 	@echo "... vigenere_tests"
 	@echo "... bench/bench_vigenere.o"
 	@echo "... bench/bench_vigenere.i"
 	@echo "... bench/bench_vigenere.s"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
+	@echo "... src/main.o"
+	@echo "... src/main.i"
+	@echo "... src/main.s"
 	@echo "... tests/test_vigenere.o"
 	@echo "... tests/test_vigenere.i"
 	@echo "... tests/test_vigenere.s"

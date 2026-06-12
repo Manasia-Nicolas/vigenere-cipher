@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = 
+CXX_INCLUDES = -I/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src
 
 CXX_FLAGSarm64 = -std=gnu++2b -arch arm64 -Wall -Wextra -Wpedantic
 

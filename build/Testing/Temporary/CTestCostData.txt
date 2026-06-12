@@ -1,1 +1,6 @@
+vigenere_tests 1 3.21693
+vigenere_cli_short 1 0.0730572
+vigenere_cli_default 1 0.0737299
+vigenere_cli_german 1 0.183559
+vigenere_cli_spaceless 1 0.479754
 ---

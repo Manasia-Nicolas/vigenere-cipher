@@ -1,7 +1,7 @@
 # clang-tidy configuration for the Vigenère project.
 # Run from this directory:
-#   clang-tidy main.cpp -- -std=c++23
-#   clang-tidy vigenere.hpp -- -std=c++23 -x c++
+#   clang-tidy -p ../build src/main.cpp
+#   clang-tidy -p ../build src/*.hpp
 Checks: >
   bugprone-*,
   performance-*,
@@ -16,5 +16,5 @@ Checks: >
   -cppcoreguidelines-avoid-c-arrays,
   -modernize-avoid-c-arrays
 WarningsAsErrors: ''
-HeaderFilterRegex: 'vigenere\.hpp'
+HeaderFilterRegex: '(alphabet|segmenter|vigenere)\.hpp'
 FormatStyle: file

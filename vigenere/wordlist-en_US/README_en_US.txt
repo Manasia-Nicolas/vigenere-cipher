@@ -152,3 +152,13 @@ Affix file Copyright:
 
 Build Date: Wed Feb 25 15:40:53 EST 2026
 Wordlist Command: mk-list --accents=strip en_US 60
+
+----------------------------------------------------------------------
+
+unigram_freq.txt (word<TAB>count, one entry per line)
+
+Source: Peter Norvig, "Natural Language Corpus Data"
+http://norvig.com/ngrams/count_1w.txt
+The 333,333 most frequent English words with their counts, derived from
+the Google Web Trillion Word Corpus. Used as the unigram cost model when
+re-inserting word boundaries into spaceless decrypted text.

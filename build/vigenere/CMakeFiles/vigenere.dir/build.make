@@ -72,28 +72,28 @@ include vigenere/CMakeFiles/vigenere.dir/flags.make
 vigenere/CMakeFiles/vigenere.dir/codegen:
 .PHONY : vigenere/CMakeFiles/vigenere.dir/codegen
 
-vigenere/CMakeFiles/vigenere.dir/main.cpp.o: vigenere/CMakeFiles/vigenere.dir/flags.make
-vigenere/CMakeFiles/vigenere.dir/main.cpp.o: /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/main.cpp
-vigenere/CMakeFiles/vigenere.dir/main.cpp.o: vigenere/CMakeFiles/vigenere.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object vigenere/CMakeFiles/vigenere.dir/main.cpp.o"
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT vigenere/CMakeFiles/vigenere.dir/main.cpp.o -MF CMakeFiles/vigenere.dir/main.cpp.o.d -o CMakeFiles/vigenere.dir/main.cpp.o -c /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/main.cpp
+vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o: vigenere/CMakeFiles/vigenere.dir/flags.make
+vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o: /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/main.cpp
+vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o: vigenere/CMakeFiles/vigenere.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o"
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o -MF CMakeFiles/vigenere.dir/src/main.cpp.o.d -o CMakeFiles/vigenere.dir/src/main.cpp.o -c /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/main.cpp
 
-vigenere/CMakeFiles/vigenere.dir/main.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/vigenere.dir/main.cpp.i"
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/main.cpp > CMakeFiles/vigenere.dir/main.cpp.i
+vigenere/CMakeFiles/vigenere.dir/src/main.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/vigenere.dir/src/main.cpp.i"
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/main.cpp > CMakeFiles/vigenere.dir/src/main.cpp.i
 
-vigenere/CMakeFiles/vigenere.dir/main.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vigenere.dir/main.cpp.s"
-	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/main.cpp -o CMakeFiles/vigenere.dir/main.cpp.s
+vigenere/CMakeFiles/vigenere.dir/src/main.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vigenere.dir/src/main.cpp.s"
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/vigenere/src/main.cpp -o CMakeFiles/vigenere.dir/src/main.cpp.s
 
 # Object files for target vigenere
 vigenere_OBJECTS = \
-"CMakeFiles/vigenere.dir/main.cpp.o"
+"CMakeFiles/vigenere.dir/src/main.cpp.o"
 
 # External object files for target vigenere
 vigenere_EXTERNAL_OBJECTS =
 
-vigenere/vigenere: vigenere/CMakeFiles/vigenere.dir/main.cpp.o
+vigenere/vigenere: vigenere/CMakeFiles/vigenere.dir/src/main.cpp.o
 vigenere/vigenere: vigenere/CMakeFiles/vigenere.dir/build.make
 vigenere/vigenere: vigenere/CMakeFiles/vigenere.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable vigenere"
