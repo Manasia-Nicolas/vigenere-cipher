@@ -1,0 +1,24 @@
+Start testing: Jun 12 09:35 CEST
+----------------------------------------------------------
+1/1 Testing: vigenere_tests
+1/1 Test: vigenere_tests
+Command: "/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere/vigenere_tests"
+Directory: /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid
+"vigenere_tests" start time: Jun 12 09:35 CEST
+Output:
+----------------------------------------------------------
+[doctest] doctest version is "2.5.0"
+[doctest] run with "--help" for options
+===============================================================================
+[doctest] test cases:  17 |  17 passed | 0 failed | 0 skipped
+[doctest] assertions: 131 | 131 passed | 0 failed |
+[doctest] Status: SUCCESS!
+<end of output>
+Test time =   0.96 sec
+----------------------------------------------------------
+Test Passed.
+"vigenere_tests" end time: Jun 12 09:35 CEST
+"vigenere_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jun 12 09:35 CEST

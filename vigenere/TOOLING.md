@@ -1,0 +1,129 @@
+# Testing, Linting and Performance
+
+All commands are run from the **repository root** (the directory that holds the
+top-level `CMakeLists.txt`).
+
+## Layout
+
+```
+vigenere/
+  vigenere.hpp        Alphabet + VignereCypher (all logic, header-only)
+  main.cpp            CLI front-end
+  tests/
+    doctest.h         single-header test framework (vendored)
+    test_vigenere.cpp unit + integration tests
+  bench/
+    bench_vigenere.cpp  scaling benchmark (no framework)
+  .clang-format       formatting rules
+  .clang-tidy         static-analysis checks
+```
+
+Splitting the logic into `vigenere.hpp` is what makes all three activities
+possible: tests and the benchmark `#include` the header directly, and the
+cracking building blocks (`FindLengthKasiski`, `FindLengthFriedman`,
+`FrequentAnalysis`, `CountDictionaryWords`, `KeyToText`) are `public static`
+so they can be tested and benchmarked in isolation, not only through `Crack`.
+
+## 1. Unit testing — doctest + CTest
+
+Configure once, then build and test:
+
+```sh
+cmake -S . -B build -DPROJECT_TOPIC=VIGENERE
+cmake --build build
+ctest --test-dir build/vigenere --output-on-failure
+```
+
+The suite (`tests/test_vigenere.cpp`) covers:
+
+- **Alphabet**: sizes, UTF-8 `SymbolToChar`/`CharToSymbol` round-trips,
+  `ExtractLetters`, dictionary `LetterFrequencies`, and the cache logic in
+  `LoadFrequencies` (valid cache reused; empty / garbage / wrong-alphabet
+  caches rejected and recomputed).
+- **Cipher**: `encode`/`decode` round trips (including German umlauts in both
+  text and key), the length-changing shift `Z + B = Ä`, and the empty-key
+  exception.
+- **Key length**: Kasiski and Friedman agree with the true length for several
+  keys; a Caesar cipher is detected as length 1.
+- **Full crack**: all English key lengths 1–10, German keys including the
+  all-umlaut `ÄÖÜß`, the four sample files, and short-text (tie-breaker) cases.
+
+The test target runs with the repo root as its working directory (set via
+`WORKING_DIRECTORY` in CMake), so it reads the same data files as the program.
+
+### Sanitizers (recommended before trusting a refactor)
+
+```sh
+cmake -S . -B build-san -DPROJECT_TOPIC=VIGENERE -DVIGENERE_SANITIZE=ON
+cmake --build build-san --target vigenere_tests
+./build-san/vigenere/vigenere_tests
+```
+
+This builds the tests with AddressSanitizer + UndefinedBehaviorSanitizer.
+It catches out-of-bounds reads (e.g. a stray non-symbol reaching
+`FindLengthKasiski`) and integer/UB issues that normal runs pass over.
+
+## 2. Linting and formatting — clang-tidy + clang-format
+
+Static analysis (install LLVM first: `brew install llvm`, which provides
+`clang-tidy`):
+
+```sh
+clang-tidy vigenere/vigenere.hpp -- -std=c++23 -x c++
+clang-tidy vigenere/main.cpp     -- -std=c++23
+```
+
+Enabled check groups are in `.clang-tidy` (`bugprone`, `performance`,
+`modernize`, `readability`, `cppcoreguidelines`, with a few noisy checks
+disabled). The build also compiles with `-Wall -Wextra -Wpedantic`, which is
+the zeroth-cost linter and currently passes with no warnings.
+
+Formatting (`brew install clang-format`):
+
+```sh
+clang-format --dry-run --Werror vigenere/main.cpp vigenere/vigenere.hpp  # check
+clang-format -i vigenere/main.cpp vigenere/vigenere.hpp                  # apply
+```
+
+Rules are in `.clang-format` (LLVM base, 4-space indent, 100-column limit).
+
+## 3. Performance analysis
+
+### Microbenchmark (function scaling)
+
+```sh
+cmake --build build --target vigenere_bench
+./build/vigenere/vigenere_bench
+```
+
+Runs `FindLengthKasiski`, `FindLengthFriedman` and `FrequentAnalysis` over
+synthetic ciphertext from 1 k to 320 k letters. Times grow linearly with the
+text size — confirming the O(n) Kasiski (hash-table trigram lookup) and the
+O(K·n) Friedman, while `FrequentAnalysis` stays cheap.
+
+Example (Apple Silicon, -O2):
+
+| n       | Kasiski | Friedman | FreqAnalysis |
+|---------|---------|----------|--------------|
+| 1 000   | 0.003 ms | 0.006 ms | 0.005 ms |
+| 20 000  | 0.080 ms | 0.081 ms | 0.013 ms |
+| 320 000 | 2.14 ms  | 1.26 ms  | 0.14 ms  |
+
+### Whole-program timing (`brew install hyperfine`)
+
+```sh
+hyperfine --warmup 2 './build/vigenere/vigenere en vigenere/long-encrypted.txt'
+```
+
+End-to-end this is ~30 ms, **dominated by reading the ~3 MB wordlist**, not by
+the cracking maths above. The frequency cache (`frequencies.txt`, written on
+first run) removes the O(dictionary) frequency computation, but the word list
+is still read for the dictionary-word tie-breaker, so wall-clock time is
+similar; the remaining win would require loading the word list lazily.
+
+### Profiling (where the time actually goes)
+
+macOS ships Instruments (Time Profiler template) with Xcode; build with
+`-O2 -g` and profile the `vigenere` binary. A lighter alternative is
+`samply` (`brew install samply`): `samply record ./build/vigenere/vigenere en
+vigenere/long-encrypted.txt`, which opens the Firefox Profiler UI.

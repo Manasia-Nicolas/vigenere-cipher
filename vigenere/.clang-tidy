@@ -1,0 +1,20 @@
+# clang-tidy configuration for the Vigenère project.
+# Run from this directory:
+#   clang-tidy main.cpp -- -std=c++23
+#   clang-tidy vigenere.hpp -- -std=c++23 -x c++
+Checks: >
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-c-arrays,
+  -modernize-avoid-c-arrays
+WarningsAsErrors: ''
+HeaderFilterRegex: 'vigenere\.hpp'
+FormatStyle: file
