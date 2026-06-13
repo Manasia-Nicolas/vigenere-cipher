@@ -291,11 +291,13 @@ The tests cover:
 
 - English and German alphabet conversion;
 - multiple integral index types for `symbol_to_char`;
+- exact preservation of file whitespace;
 - encryption and decryption, including UTF-8 symbols;
 - Kasiski, Friedman, and frequency-analysis helpers;
 - complete key recovery;
 - frequency-cache validation;
 - dictionary scoring and word segmentation;
+- rejected invalid inputs and unsupported configurations;
 - CLI execution against sample files.
 
 Run with AddressSanitizer and UndefinedBehaviorSanitizer:
@@ -336,6 +338,8 @@ SDK="$(xcrun --show-sdk-path)"
 ```
 
 More tooling details are available in [`TOOLING.md`](TOOLING.md).
+The README explains the project and its design; `TOOLING.md` keeps detailed
+developer commands, sanitizer instructions, and performance results separate.
 
 ## Limitations
 

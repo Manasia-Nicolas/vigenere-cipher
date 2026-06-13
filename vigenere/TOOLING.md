@@ -3,6 +3,11 @@
 All commands are run from the **repository root** (the directory that holds the
 top-level `CMakeLists.txt`).
 
+This document is the developer-facing companion to `README.md`. The README
+explains the program, design, algorithms, and usage. This file keeps detailed
+testing, static-analysis, formatting, sanitizer, and performance workflows in
+one place without making the main README harder to scan.
+
 ## Layout
 
 ```
@@ -42,9 +47,10 @@ ctest --test-dir build --output-on-failure
 The suite (`tests/test_vigenere.cpp`) covers:
 
 - **Alphabet**: sizes, UTF-8 `symbol_to_char`/`char_to_symbol` round-trips,
-  `extract_letters`, dictionary `calculate_frequencies`, and construction-time
-  frequency loading (valid cache reused; empty / garbage / wrong-alphabet
-  caches rejected and recomputed).
+  `extract_letters`, exact file-whitespace preservation, dictionary
+  `calculate_frequencies`, and construction-time frequency loading (valid
+  cache reused; empty / garbage / negative / wrong-alphabet caches rejected
+  and recomputed).
 - **Cipher**: `encode`/`decode` round trips (including German umlauts in both
   text and key), the standard `ATTACKATDAWN` known-answer example,
   alternate-key and empty-input cases, the length-changing shift `Z + B = Ä`,
@@ -54,8 +60,11 @@ The suite (`tests/test_vigenere.cpp`) covers:
 - **Full crack**: all English key lengths 1–10, German keys including the
   all-umlaut `ÄÖÜß`, the four sample files, and short-text (tie-breaker) cases.
 - **Word segmentation**: dictionary-only and unigram cost models, unknown
-  symbols, empty input, German UTF-8 symbols, controlled unigram normalization,
-  and cracking then segmenting spaceless text.
+  symbols, empty input, rejected empty dictionaries, German UTF-8 symbols,
+  controlled unigram normalization, and cracking then segmenting spaceless
+  text.
+- **Validation**: invalid internal symbols, empty keys, unsupported cracking
+  inputs, invalid frequency data, and missing language resources.
 - **CLI integration**: normal and spaceless sample files run through the built
   executable, verifying the organized `data/` paths, preserved file whitespace,
   and expected output.
@@ -67,13 +76,25 @@ The test target runs with the repo root as its working directory (set via
 
 ```sh
 cmake -S . -B build-san -DPROJECT_TOPIC=VIGENERE -DVIGENERE_SANITIZE=ON
-cmake --build build-san --target vigenere_tests
-./build-san/vigenere/vigenere_tests
+cmake --build build-san
+ctest --test-dir build-san --output-on-failure
 ```
 
-This builds the tests with AddressSanitizer + UndefinedBehaviorSanitizer.
+This builds the library, CLI, tests, and benchmark with AddressSanitizer +
+UndefinedBehaviorSanitizer, then runs all unit and CLI integration tests.
 It catches out-of-bounds reads (e.g. a stray non-symbol reaching
 `find_length_kasiski`) and integer/UB issues that normal runs pass over.
+
+### C++20 compatibility
+
+The default standard is C++23. A separate configuration verifies that the
+project also supports C++20:
+
+```sh
+cmake -S . -B build-20 -DPROJECT_TOPIC=VIGENERE -DPROJECT_CXX_STANDARD=20
+cmake --build build-20
+ctest --test-dir build-20 --output-on-failure
+```
 
 ## 2. Linting and formatting — clang-tidy + clang-format
 
