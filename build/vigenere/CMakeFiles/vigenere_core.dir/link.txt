@@ -1,2 +1,0 @@
-/usr/bin/ar qc libvigenere_core.a CMakeFiles/vigenere_core.dir/src/language_resources.cpp.o
-/usr/bin/ranlib libvigenere_core.a
