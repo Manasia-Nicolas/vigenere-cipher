@@ -4,8 +4,6 @@ build-*/
 build/
 build/compile_commands.json
 vigenere/wordlist-de_DE/frequencies.txt
-
-# Stray compiled binaries (never commit build output).
 a.out
 *.out
 /test
