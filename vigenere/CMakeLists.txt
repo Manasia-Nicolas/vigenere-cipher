@@ -2,7 +2,11 @@ file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/wordlist-en_US/en_US.txt"
      "${CMAKE_CURRENT_BINARY_DIR}/en_US.txt")
 
 # Warning flags applied to all targets in this directory.
-add_compile_options(-Wall -Wextra -Wpedantic)
+if(MSVC)
+  add_compile_options(/W4)
+else()
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
 # ---- shared core library ---------------------------------------------------
 set(VIGENERE_PUBLIC_HEADERS
@@ -62,11 +66,18 @@ set_tests_properties(vigenere_cli_spaceless PROPERTIES
 add_executable(vigenere_bench bench/bench_vigenere.cpp)
 target_link_libraries(vigenere_bench PRIVATE vigenere_core)
 target_compile_features(vigenere_bench PRIVATE "cxx_std_${PROJECT_CXX_STANDARD}")
-target_compile_options(vigenere_bench PRIVATE -O2)
+if(MSVC)
+  target_compile_options(vigenere_bench PRIVATE /O2)
+else()
+  target_compile_options(vigenere_bench PRIVATE -O2)
+endif()
 
 # Optional sanitizer build: -DVIGENERE_SANITIZE=ON
 option(VIGENERE_SANITIZE "Build targets with Address/UB sanitizers" OFF)
 if(VIGENERE_SANITIZE)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    message(FATAL_ERROR "VIGENERE_SANITIZE requires a Clang or GCC-compatible compiler")
+  endif()
   foreach(target vigenere_core vigenere vigenere_tests vigenere_bench)
     target_compile_options(${target} PRIVATE -fsanitize=address,undefined -g)
   endforeach()
