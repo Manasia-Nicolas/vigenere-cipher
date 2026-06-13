@@ -5,7 +5,7 @@ IndentWidth: 4
 ColumnLimit: 100
 PointerAlignment: Left
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortBlocksOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Always
 AllowShortFunctionsOnASingleLine: Inline
 SpaceBeforeParens: ControlStatements
 BinPackArguments: false

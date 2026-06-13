@@ -1,4 +1,5 @@
 # Local CMake build directories and generated compilation databases.
+.DS_Store
 build-*/
 build/compile_commands.json
 vigenere/wordlist-de_DE/frequencies.txt

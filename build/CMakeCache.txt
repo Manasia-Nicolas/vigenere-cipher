@@ -246,7 +246,7 @@ PROJECT_CXX_STANDARD:STRING=23
 //Project topic, please select one of QRCODE, VIGENERE, PI
 PROJECT_TOPIC:STRING=VIGENERE
 
-//Build tests with Address/UB sanitizers
+//Build targets with Address/UB sanitizers
 VIGENERE_SANITIZE:BOOL=OFF
 
 

@@ -134,6 +134,20 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+vigenere/CMakeFiles/vigenere_core.dir/rule:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 vigenere/CMakeFiles/vigenere_core.dir/rule
+.PHONY : vigenere/CMakeFiles/vigenere_core.dir/rule
+
+# Convenience name for target.
+vigenere_core: vigenere/CMakeFiles/vigenere_core.dir/rule
+.PHONY : vigenere_core
+
+# fast build rule for target.
+vigenere_core/fast:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_core.dir/build.make vigenere/CMakeFiles/vigenere_core.dir/build
+.PHONY : vigenere_core/fast
+
+# Convenience name for target.
 vigenere/CMakeFiles/vigenere.dir/rule:
 	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 vigenere/CMakeFiles/vigenere.dir/rule
 .PHONY : vigenere/CMakeFiles/vigenere.dir/rule
@@ -199,6 +213,30 @@ bench/bench_vigenere.cpp.s:
 	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_bench.dir/build.make vigenere/CMakeFiles/vigenere_bench.dir/bench/bench_vigenere.cpp.s
 .PHONY : bench/bench_vigenere.cpp.s
 
+src/language_resources.o: src/language_resources.cpp.o
+.PHONY : src/language_resources.o
+
+# target to build an object file
+src/language_resources.cpp.o:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_core.dir/build.make vigenere/CMakeFiles/vigenere_core.dir/src/language_resources.cpp.o
+.PHONY : src/language_resources.cpp.o
+
+src/language_resources.i: src/language_resources.cpp.i
+.PHONY : src/language_resources.i
+
+# target to preprocess a source file
+src/language_resources.cpp.i:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_core.dir/build.make vigenere/CMakeFiles/vigenere_core.dir/src/language_resources.cpp.i
+.PHONY : src/language_resources.cpp.i
+
+src/language_resources.s: src/language_resources.cpp.s
+.PHONY : src/language_resources.s
+
+# target to generate assembly for a file
+src/language_resources.cpp.s:
+	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build && $(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_core.dir/build.make vigenere/CMakeFiles/vigenere_core.dir/src/language_resources.cpp.s
+.PHONY : src/language_resources.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -259,10 +297,14 @@ help:
 	@echo "... test"
 	@echo "... vigenere"
 	@echo "... vigenere_bench"
+	@echo "... vigenere_core"
 	@echo "... vigenere_tests"
 	@echo "... bench/bench_vigenere.o"
 	@echo "... bench/bench_vigenere.i"
 	@echo "... bench/bench_vigenere.s"
+	@echo "... src/language_resources.o"
+	@echo "... src/language_resources.i"
+	@echo "... src/language_resources.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

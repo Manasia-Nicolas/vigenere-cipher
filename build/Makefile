@@ -134,6 +134,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named vigenere_core
+
+# Build rule for target.
+vigenere_core: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 vigenere_core
+.PHONY : vigenere_core
+
+# fast build rule for target.
+vigenere_core/fast:
+	$(MAKE) $(MAKESILENT) -f vigenere/CMakeFiles/vigenere_core.dir/build.make vigenere/CMakeFiles/vigenere_core.dir/build
+.PHONY : vigenere_core/fast
+
+#=============================================================================
 # Target rules for targets named vigenere
 
 # Build rule for target.
@@ -184,6 +197,7 @@ help:
 	@echo "... test"
 	@echo "... vigenere"
 	@echo "... vigenere_bench"
+	@echo "... vigenere_core"
 	@echo "... vigenere_tests"
 .PHONY : help
 

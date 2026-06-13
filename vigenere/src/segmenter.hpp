@@ -5,100 +5,80 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-// Re-inserts word boundaries into text whose spaces were stripped before
-// encryption. After decryption you hold a run of letters like
-// "THEVIGENERECIPHERISAMETHODOF..." — correct plaintext, but unreadable.
-// The segmenter splits it back into "THE VIGENERE CIPHER IS A METHOD OF ...".
-//
-// Each candidate word has a COST (lower = more likely); the best segmentation
-// is the one of minimum total cost, found by a dynamic program over the
-// symbols of the text. Two cost models are supported:
-//
-//   * Unigram model (Build with a "word<TAB>count" frequency file): the cost
-//     of a word is -log10(count / N) — common words are cheap, rare words
-//     expensive. This is the model that gets "A LONG WAY OFF" right where a
-//     length-only heuristic greedily merges them into "ALONG WAY OFF".
-//
-//   * Dictionary-only fallback (no frequency file, e.g. for German): a word's
-//     cost is -length^2, which rewards covering the text with long real words.
-//
-// In both models a symbol that is part of no known word is kept as a costly
-// one-symbol token, so a segmentation always exists (proper nouns survive).
+// Restores word boundaries by finding the minimum-cost segmentation.
+// Unigram data gives words -log10(probability) costs; the dictionary-only
+// fallback rewards long words with -length^2.
 class WordSegmenter {
   private:
     std::unordered_map<std::string, double> word_cost; // known word -> cost
     double unknown_cost = 1.0;                         // cost of one unknown symbol
-    int max_word_length = 1;                           // longest known word, in symbols
+    std::size_t max_word_length = 1;                   // longest known word, in symbols
 
-    // Uppercases an ASCII word and returns false if it holds an ASCII
-    // non-letter (apostrophes, digits), so we keep only clean symbol keys.
-    // Multi-byte UTF-8 sequences (the extra symbols of a language) pass
-    // through unchanged: the frequency files store them already uppercase.
-    static bool NormalizeAscii(std::string& w) {
+    // UTF-8 bytes pass unchanged; ASCII entries must contain only letters.
+    static bool normalize_ascii(std::string& w) {
         for (char& c : w) {
-            if (c >= 'a' && c <= 'z')
-                c = c - 'a' + 'A';
-            else if ((c & 0x80) == 0 && (c < 'A' || c > 'Z'))
+            if (c >= 'a' && c <= 'z') {
+                c = static_cast<char>(c - 'a' + 'A');
+            } else if ((c & 0x80) == 0 && (c < 'A' || c > 'Z')) {
                 return false;
+            }
         }
         return !w.empty();
     }
 
-    static int SymbolLength(const std::string& word) {
-        int length = 0;
-        for (unsigned char byte : word)
-            if ((byte & 0xC0) != 0x80) ++length; // skip UTF-8 continuation bytes
+    static std::size_t symbol_length(const std::string& word) {
+        std::size_t length = 0;
+        for (unsigned char byte : word) {
+            if ((byte & 0xC0) != 0x80) { ++length; } // skip UTF-8 continuation bytes
+        }
         return length;
     }
 
   public:
-    // Unigram cost model from a Norvig-style frequency file, with the
-    // dictionary supplying rare-but-valid words the frequency list may miss.
-    // If the frequency file cannot be opened, falls back to the
-    // dictionary-only length model so the segmenter still works (e.g. German).
-    static WordSegmenter Build(const std::string& frequency_file,
+    static WordSegmenter build(const std::string& frequency_file,
                                const std::unordered_set<std::string>& dictionary) {
+        if (dictionary.empty()) {
+            throw std::invalid_argument("WordSegmenter needs a non-empty dictionary");
+        }
         WordSegmenter s;
 
         std::ifstream in(frequency_file);
         double total = 0;
         std::vector<std::pair<std::string, double>> entries;
         std::string word;
-        double count;
+        double count = 0;
         while (in >> word >> count) {
-            if (NormalizeAscii(word) && count > 0) {
+            if (normalize_ascii(word) && std::isfinite(count) && count > 0) {
                 entries.emplace_back(word, count);
                 total += count;
             }
         }
 
-        if (total > 0) {
+        if (std::isfinite(total) && total > 0) {
             double log_total = std::log10(total);
             for (const auto& [w, c] : entries) {
                 double cost = log_total - std::log10(c);
                 auto it = s.word_cost.find(w);
-                if (it == s.word_cost.end() || cost < it->second) s.word_cost[w] = cost;
-                s.max_word_length = std::max(s.max_word_length, SymbolLength(w));
+                if (it == s.word_cost.end() || cost < it->second) { s.word_cost[w] = cost; }
+                s.max_word_length = std::max(s.max_word_length, symbol_length(w));
             }
-            // dictionary words missing from the frequency list are valid but
-            // rare: give them the floor cost of a least-frequent unigram.
+            // Treat dictionary words missing from the frequency list as rare.
             for (const std::string& w : dictionary) {
                 s.word_cost.emplace(w, log_total);
-                s.max_word_length = std::max(s.max_word_length, SymbolLength(w));
+                s.max_word_length = std::max(s.max_word_length, symbol_length(w));
             }
-            // an unknown single symbol is costlier than any real word, so it
-            // is only used when nothing else covers the position
             s.unknown_cost = log_total + 10;
         } else {
-            // dictionary-only fallback: reward length (cost = -length^2)
             for (const std::string& w : dictionary) {
-                int len = SymbolLength(w);
-                s.word_cost[w] = -(double)len * len;
+                std::size_t len = symbol_length(w);
+                double length = static_cast<double>(len);
+                s.word_cost[w] = -length * length;
                 s.max_word_length = std::max(s.max_word_length, len);
             }
             s.unknown_cost = 1.0;
@@ -106,45 +86,40 @@ class WordSegmenter {
         return s;
     }
 
-    // One-shot convenience: builds the segmenter from the language's
-    // resources (the alphabet's dictionary and unigram frequency list) and
-    // segments the text in a single call. Takes the language first; a
-    // static overload cannot share the instance signature below.
-    static std::string Segment(const Alphabet& alphabet, const std::string& text) {
-        return Build(alphabet.UnigramFile(), alphabet.Dictionary()).Segment(text, alphabet);
+    [[nodiscard]] static std::string segment(const Alphabet& alphabet, const std::string& text) {
+        return build(alphabet.resources().unigram_file(), alphabet.resources().dictionary())
+            .segment(text, alphabet);
     }
 
-    std::string Segment(const std::string& text, const Alphabet& alphabet) const {
-        // Tokenize into symbols (each is its UTF-8 text form), so words are
-        // concatenated in symbol units, not bytes.
+    [[nodiscard]] std::string segment(const std::string& text, const Alphabet& alphabet) const {
+        // Tokenize first so UTF-8 symbols count as one position.
         std::vector<std::string> symbols;
-        int i = 0;
-        while (i < (int)text.size()) {
-            char c = alphabet.SymbolToChar(text, i);
-            if (c != 0) symbols.push_back(alphabet.CharToSymbol(c));
+        std::size_t i = 0;
+        while (i < text.size()) {
+            char c = alphabet.symbol_to_char(text, i);
+            if (c != 0) { symbols.push_back(alphabet.char_to_symbol(c)); }
         }
 
-        int n = (int)symbols.size();
+        std::size_t n = symbols.size();
         const double INF = 1e18;
         std::vector<double> best(n + 1, INF);
-        std::vector<int> prev(n + 1, -1); // start index of the word ending at i
+        std::vector<std::size_t> prev(n + 1); // start index of the word ending at i
         best[0] = 0;
 
-        for (int end = 1; end <= n; ++end) {
+        for (std::size_t end = 1; end <= n; ++end) {
             std::string word;
-            int lo = std::max(0, end - max_word_length);
-            for (int start = end - 1; start >= lo; --start) {
+            std::size_t lo = end > max_word_length ? end - max_word_length : 0;
+            for (std::size_t start = end; start-- > lo;) {
                 word = symbols[start] + word; // grow the word leftwards
-                if (best[start] >= INF) continue;
+                if (best[start] >= INF) { continue; }
 
                 auto it = word_cost.find(word);
-                double cost;
-                if (it != word_cost.end())
+                double cost = unknown_cost;
+                if (it != word_cost.end()) {
                     cost = it->second;
-                else if (end - start == 1)
-                    cost = unknown_cost; // keep a lone unknown symbol
-                else
+                } else if (end - start != 1) {
                     continue; // no multi-symbol non-words
+                }
 
                 double score = best[start] + cost;
                 if (score < best[end]) {
@@ -154,19 +129,19 @@ class WordSegmenter {
             }
         }
 
-        // Reconstruct the words by following prev[] back from n.
         std::vector<std::string> out_words;
-        for (int end = n; end > 0; end = prev[end]) {
+        for (std::size_t end = n; end > 0; end = prev[end]) {
             std::string word;
-            for (int k = prev[end]; k < end; ++k)
+            for (std::size_t k = prev[end]; k < end; ++k) {
                 word += symbols[k];
+            }
             out_words.push_back(word);
         }
 
         std::string result;
-        for (int w = (int)out_words.size() - 1; w >= 0; --w) {
-            result += out_words[w];
-            if (w > 0) result += ' ';
+        for (auto word = out_words.rbegin(); word != out_words.rend(); ++word) {
+            if (!result.empty()) { result += ' '; }
+            result += *word;
         }
         return result;
     }

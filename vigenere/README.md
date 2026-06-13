@@ -1,23 +1,49 @@
-# Vigenère Cipher Encrypter / Decrypter
+# Vigenere Cipher
 
-A C++ implementation of the Vigenère cipher that can encrypt, decrypt, and
-recover an unknown key. It estimates the key length with the Kasiski examination
-and Friedman test, then recovers the key symbols with frequency analysis
-(Kerckhoffs' method). C++23 is the default; C++20 is also supported.
+A modern C++ implementation of the Vigenere cipher for English and German.
+The project can:
 
-The project supports keys up to 10 symbols and two languages:
+- encrypt and decrypt text with a known key;
+- recover an unknown key using Kasiski examination, the Friedman test, and
+  frequency analysis;
+- preserve spaces, punctuation, and unsupported characters;
+- restore word boundaries when spaces were removed before encryption.
 
-| Language | Alphabet | Arithmetic | Dictionary |
-|----------|----------|------------|------------|
-| English (`en`) | A-Z (26 symbols) | mod 26 | `wordlist-en_US/en_US.txt` |
-| German (`de`) | A-Z + Ä Ö Ü ß (30 symbols) | mod 30 | `wordlist-de_DE/de_DE.txt` |
+C++23 is the default. The project also supports C++20.
 
-German umlauts and the eszett are first-class cipher symbols. They can appear in
-the plaintext, ciphertext, and key.
+## Project Rubric Mapping
 
-## Building and Running
+| Requirement | Implementation evidence |
+|-------------|-------------------------|
+| Basic: decrypt English Vigenere ciphertext | `VigenereCipher::crack` recovers the key and returns a cipher that decrypts the message. |
+| Basic: Kasiski examination | Private `find_length_kasiski` estimates key length from repeated trigram distances. |
+| Basic: frequency analysis | Private `frequency_analysis` recovers each key symbol using chi-squared comparison with language frequencies. |
+| Improvement: encrypter and round-trip verification | `encode` implements encryption; tests verify known answers and encode/decode round trips. |
+| Improvement: Friedman test | Private `find_length_friedman` estimates key length from the index of coincidence. |
+| Improvement: keys up to 10 characters | `max_key_length` is `10`; tests recover English keys across lengths 1-10. |
+| Advanced: messages without spaces or special characters | `WordSegmenter` restores likely word boundaries using dynamic programming. |
+| Advanced: German support | `Alphabet::german` supports A-Z, Ä, Ö, Ü, and ß with modulo-30 arithmetic. |
+| Extra: unit tests | Doctest unit tests and CTest CLI integration tests cover algorithms, edge cases, and invalid input. |
+| Extra: documentation | This README documents design, algorithms, complexity, limitations, and usage. |
+| Extra: linter and formatting | `.clang-tidy`, `.clang-format`, and compiler warning flags are configured. |
+| Extra: performance analysis | `bench/bench_vigenere.cpp` measures algorithm scaling; complexity is documented below. |
 
-Run commands from the repository root:
+## Supported Languages
+
+| Language | CLI value | Alphabet | Arithmetic |
+|----------|-----------|----------|------------|
+| English | `en` | A-Z | modulo 26 |
+| German | `de` | A-Z, Ä, Ö, Ü, ß | modulo 30 |
+
+German extra symbols are treated as complete cipher symbols even though they
+use multiple bytes in UTF-8.
+
+Input text and keys should be uppercase. Unsupported characters are preserved
+in messages but ignored in keys and statistical analysis.
+
+## Build and Run
+
+Run all commands from the repository root:
 
 ```sh
 cmake -S . -B build -DPROJECT_TOPIC=VIGENERE
@@ -25,476 +51,252 @@ cmake --build build
 ./build/vigenere/vigenere [en|de] [encrypted-file]
 ```
 
-Both arguments are optional. The defaults are `en` and
+Both command-line arguments are optional. The defaults are English and
 `vigenere/data/long-encrypted.txt`.
+
+Example output:
 
 ```text
 1.LOCK
 2.WE MET NEXT DAY AS HE HAD ARRANGED, ...
 ```
 
-Line `1.` is the recovered key and line `2.` is the decrypted message. If the
-original spaces were removed before encryption, line `3.` contains the
-plaintext with recovered word boundaries.
+- `1.` is the recovered key.
+- `2.` is the decrypted message.
+- `3.` is printed when the program detects spaceless plaintext and restores
+  likely word boundaries.
 
 ## Project Structure
 
-| Path | Description |
-|------|-------------|
-| `src/main.cpp` | Command-line entry point |
-| `src/alphabet.hpp` | Language symbols, UTF-8 conversion, and frequencies |
+| Path | Responsibility |
+|------|----------------|
+| `src/main.cpp` | Command-line application |
+| `src/alphabet.hpp` | Alphabet definitions and UTF-8 symbol conversion |
+| `src/language_resources.hpp/.cpp` | Dictionary, language frequencies, cache loading, and plaintext scoring |
 | `src/vigenere.hpp` | Encryption, decryption, and key recovery |
-| `src/segmenter.hpp` | Word-boundary recovery |
-| `data/` | Example encrypted files |
-| `tests/` | Unit and integration tests |
-| `bench/` | Performance benchmark |
+| `src/segmenter.hpp` | Dynamic-programming word segmentation |
+| `src/file_io.hpp` | Text-file and word-list loading |
+| `tests/test_vigenere.cpp` | Doctest unit and integration tests |
+| `bench/bench_vigenere.cpp` | Standalone algorithm benchmark |
+| `data/` | Example ciphertexts |
 | `wordlist-en_US/`, `wordlist-de_DE/` | Language dictionaries and frequency data |
 
-## Classes
+## Design
 
-### 1. `Alphabet`
+### `Alphabet`
 
-[`alphabet.hpp`](src/alphabet.hpp) stores everything that depends on the
-language: its symbols, alphabet size, UTF-8 conversion rules, and letter
-frequencies.
+`Alphabet` defines which symbols belong to a language and converts between
+UTF-8 text and the compact representation used by the cipher.
 
-Internally, every symbol is represented by one `char` using `'A' + index`.
-Therefore, German symbols such as `Ä` and `ß` occupy one internal value even
-though their UTF-8 text representations use multiple bytes.
-
-#### Variables
-
-| Variable | Description |
-|----------|-------------|
-| `extras` | UTF-8 symbols after A-Z. German stores `Ä`, `Ö`, `Ü`, and `ß`; English stores none. |
-| `frequencies` | Probability distribution of the language symbols, loaded from a cache or calculated from the dictionary. |
-| `dictionary` | Set of valid words used to score candidate decryptions and restore word boundaries. |
-| `longest_word` | Byte length of the longest dictionary word, used to detect text whose spaces were stripped. |
-| `unigram_file` | Path to the language's `word count` frequency list used by `WordSegmenter`. |
-
-#### Methods
-
-| Method | Description |
-|--------|-------------|
-| `English()` | Creates a lightweight English alphabet without loading frequencies. |
-| `German()` | Creates a lightweight German alphabet without loading frequencies. |
-| `English(words, cache_file, unigram_file)` | Creates a resource-aware English alphabet with a dictionary, cached letter frequencies, and unigram file. |
-| `German(words, cache_file, unigram_file)` | Creates a resource-aware German alphabet with a dictionary, cached letter frequencies, and unigram file. |
-| `size()` | Returns the number of symbols: 26 for English or 30 for German. |
-| `SymbolToChar(text, i)` | Reads one alphabet symbol from UTF-8 text, advances `i`, and returns its internal `char`. Returns `0` for a non-alphabet byte. |
-| `CharToSymbol(ch)` | Converts an internal `char` back to its UTF-8 text representation. |
-| `SymbolsToText(internal_symbols)` | Converts a complete internal symbol string back to UTF-8 text. |
-| `ExtractLetters(text)` | Removes spaces, punctuation, digits, and symbols unsupported by this alphabet, leaving only internal alphabet symbols. |
-| `LetterFrequencies(words)` | Calculates the probability of every alphabet symbol from the supplied dictionary. |
-| `Frequencies()` | Returns the frequencies currently stored by the alphabet. |
-| `Dictionary()` | Returns the language dictionary. |
-| `UnigramFile()` | Returns the path to the language's unigram frequency list. |
-| `CountDictionaryWords(text)` | Scores how much of a candidate plaintext is covered by dictionary words, including spaceless text. |
-| `LoadFrequencies(cache_file, words)` | Private helper that loads a valid cache or recalculates and rewrites it from the dictionary. |
-
-#### Method Details
-
-##### Construction and language resources
-
-`English()` and `German()` create lightweight alphabets that know only their
-symbols. They are sufficient for encryption, decryption, and direct calls to
-the statistical helper methods.
-
-The overloads that receive `words` create resource-aware alphabets. During
-construction they:
-
-1. Store the supplied words in an `unordered_set` for fast dictionary lookup.
-2. Record the longest dictionary word, used to recognize spaceless plaintext.
-3. Store the path to the language's unigram file for `WordSegmenter`.
-4. Load or calculate the language's letter-frequency distribution.
-
-`VigenereCypher::Crack` and the one-shot `WordSegmenter::Segment` require these
-resource-aware alphabets.
-
-##### `SymbolToChar(text, i)` and `CharToSymbol(ch)`
-
-The rest of the program needs every language symbol to occupy one value, even
-though UTF-8 symbols may occupy multiple bytes. `SymbolToChar` provides this
-conversion while advancing `i` past the bytes it consumed:
+Internally, every symbol occupies one `char`:
 
 ```text
-text symbol:       A    Z    Ä    Ö    Ü    ß
-internal value:   'A'  'Z'  '['  '\'  ']'  '^'
+Text:       A    Z    Ä    Ö    Ü    ß
+Internal:  'A'  'Z'  '['  '\'  ']'  '^'
 ```
 
-For A-Z, the text byte is already the internal value. For a German extra
-symbol, the method finds its position in `extras` and returns
-`'A' + 26 + position`. If no supported symbol starts at `i`, it advances by one
-byte and returns `0`.
+This lets the cryptographic algorithms treat German extra symbols exactly like
+A-Z.
 
-`CharToSymbol` performs the inverse conversion. `SymbolsToText` applies it to a
-complete internal string.
+Important methods:
 
-##### `ExtractLetters(text)`
+| Method | Purpose |
+|--------|---------|
+| `english()`, `german()` | Create lightweight alphabets for encryption and decryption |
+| `english(words, ...)`, `german(words, ...)` | Create alphabets with language resources required for cracking |
+| `size()` | Return the number of supported symbols |
+| `symbol_to_char(text, position)` | Read one symbol and advance the byte position |
+| `char_to_symbol(character)` | Convert one internal value back to UTF-8 |
+| `extract_letters(text)` | Keep supported symbols and return their internal representation |
+| `resources()` | Access the composed `LanguageResources` object |
 
-`ExtractLetters` repeatedly calls `SymbolToChar` and keeps only nonzero results.
-It therefore converts UTF-8 text into the internal one-value-per-symbol format
-while removing spaces, punctuation, digits, lowercase letters, and unsupported
-characters.
+`symbol_to_char` accepts mutable integral position types that make sense for
+indexing, including `std::size_t` and `int`:
 
-For example, with the German alphabet:
+```cpp
+Alphabet alphabet = Alphabet::german();
+std::string text = "AÄ";
+int position = 0;
 
-```text
-"KÖNIG, 123!" -> internal symbols for "KÖNIG"
+char first = alphabet.symbol_to_char(text, position);  // 'A', position == 1
+char second = alphabet.symbol_to_char(text, position); // internal Ä, position == 3
 ```
 
-The cracking algorithms operate on this compact internal representation.
+The method rejects negative positions, out-of-range positions, `bool`, and
+positions that cannot fit back into the caller's integer type. Internally,
+container positions remain `std::size_t`.
 
-##### `LetterFrequencies(words)` and `LoadFrequencies(cache_file, words)`
+### `LanguageResources`
 
-`LetterFrequencies` counts every supported symbol in the supplied dictionary
-and divides each count by the total:
+`LanguageResources` owns data needed for statistical key recovery:
+
+- a dictionary stored in `std::unordered_set`;
+- a language symbol-frequency distribution;
+- the longest dictionary word;
+- the path to a unigram-frequency file.
+
+When constructed, it tries to load cached symbol frequencies. A cache is valid
+only when it contains exactly one value per alphabet symbol and sums to
+approximately `1`. Otherwise, frequencies are recalculated from the dictionary
+and the cache is rewritten.
+
+`score_dictionary_words` evaluates candidate decryptions. Normal text is
+scored by counting dictionary words. For text without spaces, it searches for
+dictionary matches and gives longer words more weight.
+
+### `VigenereCipher`
+
+`VigenereCipher` stores an `Alphabet` and a key in the internal
+one-value-per-symbol representation.
+
+Public operations:
+
+| Method | Purpose |
+|--------|---------|
+| `VigenereCipher(key, alphabet)` | Construct a cipher with a known key |
+| `encode(message)` | Encrypt using the stored key |
+| `encode(message, other_key)` | Encrypt with another key without modifying the object |
+| `decode(message)` | Decrypt using the stored key |
+| `get_key()` | Return the key as UTF-8 text |
+| `crack(encoded, alphabet)` | Recover an unknown key using language resources |
+
+Encryption and decryption apply modular arithmetic only to supported symbols:
 
 ```text
-frequency(symbol) = occurrences(symbol) / total_supported_symbols
+encrypted = (plaintext + key) mod alphabet_size
+decrypted = (ciphertext - key + alphabet_size) mod alphabet_size
 ```
 
-This produces the language distribution used by the Friedman test and
-frequency analysis.
+Unsupported characters are copied unchanged, and they do not advance the key
+position. File input preserves spaces, tabs, and newlines exactly.
 
-Calculating it requires scanning the entire dictionary, so `LoadFrequencies`
-first tries the cache file. A cache is accepted only when it contains exactly
-one value per alphabet symbol and those values sum to approximately `1`. An
-invalid or missing cache is recalculated from the dictionary and rewritten.
+#### Key Recovery
 
-##### `CountDictionaryWords(text)`
+`crack` performs the following steps:
 
-This method scores how readable a candidate decryption is:
+1. Convert ciphertext to the internal symbol representation.
+2. Estimate the key length with Kasiski examination.
+3. Estimate the key length with the Friedman index of coincidence.
+4. Recover key symbols with per-column frequency analysis.
+5. If the length estimators disagree, decrypt both candidates and use
+   dictionary scoring to choose the more plausible plaintext.
 
-1. It separates normal text at unsupported characters such as spaces and
-   punctuation, then counts exact dictionary words.
-2. It tracks the longest uninterrupted alphabet-symbol run.
-3. If no words were counted and a run is longer than any dictionary word, it
-   assumes the spaces were stripped.
-4. It greedily finds the longest dictionary word at each position.
-5. It adds `length²` for each match, strongly preferring long real words over
-   accidental sequences of short words.
+The key-recovery helpers are private because they are implementation details of
+`crack`. Tests and benchmarks access them through narrow friend accessor
+classes without expanding the production API.
 
-`VigenereCypher::Crack` uses this score when Kasiski and Friedman suggest
-different key lengths.
+The current maximum tested key length is `10`.
 
-The main `Alphabet` flow is:
+### `WordSegmenter`
+
+`WordSegmenter` restores spaces in text such as:
 
 ```text
-UTF-8 text -> SymbolToChar / ExtractLetters -> internal symbols
-dictionary -> LetterFrequencies / LoadFrequencies -> language distribution
-candidate plaintext -> CountDictionaryWords -> readability score
+THEVIGENERECIPHERISAMETHOD
 ```
 
-### 2. `VigenereCypher`
+It uses dynamic programming to find the sequence of words with the lowest
+total cost.
 
-[`vigenere.hpp`](src/vigenere.hpp) encrypts and decrypts text with a known key.
-It can also recover an unknown key from ciphertext.
+The CLI detects spaceless plaintext when the decrypted content, excluding
+trailing file whitespace, consists entirely of alphabet symbols. This works
+for short and long messages.
 
-#### Variables
-
-| Variable | Description |
-|----------|-------------|
-| `alphabet` | Defines the symbols and arithmetic used by the cipher. |
-| `key` | The key stored in the alphabet's one-`char`-per-symbol internal format. |
-| `MAX_KEY_LENGTH` | Largest key length considered by the cracking algorithms. Currently `10`. |
-
-#### Methods
-
-| Method | Description |
-|--------|-------------|
-| `VigenereCypher(key, alphabet)` | Creates a cipher with a known key. Throws if the key contains no supported symbols. |
-| `encode(message)` | Encrypts supported symbols with the stored key while preserving spaces and punctuation. |
-| `encode(message, other_key)` | Encrypts using another key without changing the current cipher. |
-| `decode(message)` | Decrypts supported symbols with the stored key while preserving other characters. |
-| `GetKey()` | Returns the stored key in its UTF-8 text form. |
-| `Crack(encoded, alphabet)` | Recovers the key using the resource-aware alphabet and returns a cipher ready to decrypt the message. |
-| `FindLengthKasiski(encoded, n_symbols)` | Estimates key length by scoring distances between repeated ciphertext trigrams. |
-| `FindLengthFriedman(encoded, language_freq)` | Estimates key length by comparing each candidate's column IC with the language-derived expected IC. |
-| `FrequentAnalysis(encoded, length, language_freq)` | Treats every key column as a Caesar cipher and chooses each shift with chi-squared frequency scoring. This is the Kerckhoffs attack used by the project. |
-| `helper_increase(a, b)` | Private helper that shifts one symbol forward during encryption. |
-| `helper_decrease(a, b)` | Private helper that shifts one symbol backward during decryption. |
-
-#### Method Details
-
-##### `VigenereCypher(key, alphabet)`
-
-The constructor stores the selected alphabet and converts the key from UTF-8
-text into the alphabet's internal one-`char`-per-symbol representation.
-Unsupported characters in the key are ignored. If no valid key symbols remain,
-the constructor throws an exception because encryption and decryption would be
-impossible.
-
-##### `encode(message)` and `decode(message)`
-
-Both methods process the original message one symbol at a time. Supported
-alphabet symbols are shifted using the current key, while spaces, punctuation,
-digits, and unsupported characters are copied unchanged.
-
-The key position advances only when a supported symbol is processed. This means
-punctuation does not change which key symbol encrypts the next letter.
-
-Encryption adds the key shift:
+When unigram counts are available, a word receives the negative
+log-probability cost:
 
 ```text
-encrypted = (message + key) mod alphabet_size
-```
-
-Decryption subtracts it:
-
-```text
-decrypted = (message - key + alphabet_size) mod alphabet_size
-```
-
-The output string is rebuilt instead of edited in place because German symbols
-may use a different number of UTF-8 bytes after shifting.
-
-##### `encode(message, other_key)`
-
-This overload creates a temporary `VigenereCypher` with `other_key` and the
-same alphabet, then encrypts the message with it. The key stored by the current
-object is not changed.
-
-##### `FindLengthKasiski(encoded, n_symbols)`
-
-This method performs the Kasiski examination:
-
-1. It finds repeated groups of three ciphertext symbols.
-2. It records the distance between repeated groups.
-3. For every possible key length from `1` to `MAX_KEY_LENGTH`, it counts how
-   many distances are divisible by that length.
-4. It multiplies the count by the candidate length so larger candidates do not
-   lose only because random distances are less often divisible by them.
-5. It returns the smallest candidate whose score is within 90% of the best
-   score.
-
-Repeated ciphertext groups often occur when the same plaintext was encrypted
-at the same key position. Their distances are therefore commonly divisible by
-the real key length.
-
-##### `FindLengthFriedman(encoded, language_freq)`
-
-This method estimates the key length using the index of coincidence. For every
-candidate length, it splits the ciphertext into columns. Each column contains
-symbols encrypted by the same position of the repeating key.
-
-First, it derives the expected IC directly from the selected language:
-
-```text
-expected_IC = sum(probability_of_symbol²)
-```
-
-The correct candidate produces columns that behave like shifted natural
-language, so their average IC should be close to this expected value. Wrong
-candidates mix different shifts together and move the average IC away from the
-language value.
-
-Multiples of the real key length also create valid single-shift columns, and
-their shorter columns may appear closer by chance. Therefore, the method
-returns the smallest candidate whose error is within a small
-language-proportional tolerance of the best error.
-
-##### `FrequentAnalysis(encoded, length, language_freq)`
-
-Once the key length is known, this method recovers every key symbol separately:
-
-1. It groups together every `length`-th ciphertext symbol.
-2. It treats each group as a Caesar cipher encrypted by one key symbol.
-3. It tries every possible shift in the alphabet.
-4. It compares each shifted distribution with the language distribution using
-   the chi-squared statistic.
-5. It keeps the shift with the lowest chi-squared score.
-
-Combining the best shift from every group produces the complete key. This
-per-column frequency-analysis attack is the Kerckhoffs method used by the
-project.
-
-##### `Crack(encoded, alphabet)`
-
-`Crack` coordinates the complete key-recovery process:
-
-1. It removes punctuation and unsupported characters with `ExtractLetters`.
-2. It obtains language frequencies from the resource-aware alphabet.
-3. It estimates the key length with both Kasiski and Friedman analysis.
-4. It runs `FrequentAnalysis` for the estimated length.
-5. If both methods agree on the length, it immediately returns the recovered
-   cipher.
-6. If they disagree, it creates one candidate cipher for each length, decrypts
-   with both, and uses `Alphabet::CountDictionaryWords` to return the candidate
-   with better dictionary coverage.
-
-`Crack` requires an alphabet created with `English(words, ...)` or
-`German(words, ...)`; a lightweight alphabet has no frequencies or dictionary
-and causes `Crack` to throw.
-
-##### `Alphabet::CountDictionaryWords(text)`
-
-This method first counts complete dictionary words separated by non-alphabet
-characters. If the text contains one long run with no separators, it falls back
-to longest dictionary matches and rewards longer matches with `length²`. It is
-used as a readability score when `Crack` must choose between candidate keys.
-
-##### `GetKey()`
-
-`GetKey` asks the stored alphabet to convert the internal key with
-`SymbolsToText`. The conversion belongs to `Alphabet` because interpreting an
-internal symbol depends on that alphabet's extra symbols.
-
-##### `helper_increase(a, b)` and `helper_decrease(a, b)`
-
-These private helpers implement modular symbol shifting. `helper_increase`
-adds a key symbol during encryption, while `helper_decrease` subtracts it
-during decryption. Both wrap around using the selected alphabet's size.
-
-`Crack` follows this pipeline:
-
-```text
-ciphertext -> ExtractLetters -> Kasiski and Friedman -> key length
-resource-aware Alphabet -> frequencies and dictionary scoring
-language frequencies + key length -> FrequentAnalysis -> key
-key + ciphertext -> decode -> plaintext
-```
-
-### 3. `WordSegmenter`
-
-[`segmenter.hpp`](src/segmenter.hpp) restores spaces in decrypted text such as
-`THEQUICKBROWNFOX`. It uses dynamic programming to find the lowest-cost sequence
-of words.
-
-English and German use their own unigram frequencies, so common words receive
-lower costs. If a frequency file is unavailable, the segmenter uses a
-dictionary-only fallback that prefers longer valid words.
-
-#### Variables
-
-| Variable | Description |
-|----------|-------------|
-| `word_cost` | Maps every known word to its segmentation cost. Lower costs are preferred. |
-| `unknown_cost` | Cost of preserving one unknown symbol when no dictionary word covers it. |
-| `max_word_length` | Longest known word in this segmenter's language resources, measured in symbols rather than UTF-8 bytes. |
-
-#### Methods
-
-| Method | Description |
-|--------|-------------|
-| `Build(frequency_file, dictionary)` | Creates a segmenter using unigram costs when possible, otherwise using dictionary-only costs, and derives the language-specific maximum word length. |
-| `Segment(text, alphabet)` | Instance method that splits spaceless text into the minimum-cost sequence of known words and unknown symbols. |
-| `Segment(alphabet, text)` | Static convenience method that builds from the alphabet's language resources and segments in one call. |
-| `NormalizeAscii(word)` | Private helper that uppercases clean ASCII words and rejects invalid frequency-list entries. |
-| `SymbolLength(word)` | Private helper that counts UTF-8 symbols so German letters count as one symbol. |
-
-#### Method Details
-
-##### `Build(frequency_file, dictionary)`
-
-`Build` creates the cost model that later decides which word boundaries are
-most likely. It first reads valid `word count` pairs from the frequency file,
-normalizes ASCII words to uppercase, and totals their counts.
-
-When frequency data exists, each word receives a negative log-probability cost:
-
-```text
-probability(word) = count(word) / total_count
-cost(word) = -log10(probability(word))
+cost(word) = -log10(count(word) / total_count)
            = log10(total_count) - log10(count(word))
 ```
 
-Common words have low costs and rare words have high costs. Logarithms turn the
-probability of a complete word sequence from multiplication into addition:
+Common words have lower costs. Logarithms allow the algorithm to add word
+costs instead of multiplying probabilities.
+
+If no valid frequency file exists, the segmenter falls back to:
 
 ```text
-P(THE CAT) = P(THE) * P(CAT)
-cost(THE CAT) = cost(THE) + cost(CAT)
+cost(word) = -(symbol_length * symbol_length)
 ```
 
-Dictionary words missing from the frequency file are still accepted, but
-receive the cost of a word seen once. Unknown single symbols receive an even
-higher cost so they are used only when no real word covers that position.
+This rewards longer dictionary matches. Unknown single symbols remain allowed
+at a high cost so segmentation always succeeds.
 
-If no valid frequency data exists, `Build` uses the dictionary-only model:
+The maximum considered word length is derived from the selected language's
+resources and measured in symbols, not UTF-8 bytes.
 
-```text
-cost(word) = -(symbol_length²)
-```
+## Standard Library Use
 
-The negative value rewards longer dictionary matches. In both models, `Build`
-also records the longest known word in symbols. This gives English and German
-their own search limits and ensures UTF-8 letters such as `Ä` count as one
-symbol.
+The implementation relies on standard-library value types and RAII:
 
-##### `Segment(text, alphabet)`
+| Facility | Use |
+|----------|-----|
+| `std::string`, `std::vector` | Text, symbols, frequencies, and dynamic-programming tables |
+| `std::unordered_map`, `std::unordered_set` | Word costs and dictionary lookup |
+| `std::ifstream`, `std::ofstream` | Automatically managed file resources |
+| `std::size_t` | Internal container indexes, positions, lengths, and counts |
+| Concepts such as `std::integral` | Constrain the generic `symbol_to_char` index overload |
+| `<algorithm>`, `<cmath>`, `<chrono>`, `<random>` | Analysis, scoring, timing, and benchmark generation |
 
-`Segment` uses dynamic programming to find the valid segmentation with the
-lowest total cost.
+No manual memory management or smart pointers are needed. Objects own their
+resources directly, and standard-library containers and streams release them
+automatically through RAII.
 
-First, it tokenizes the input through `Alphabet`:
+The project does not use runtime polymorphism. The constrained
+`symbol_to_char` overload and benchmark timing function use compile-time
+generic programming.
 
-```text
-"KÖNIGGRÜßT" -> ["K", "Ö", "N", "I", "G", "G", "R", "Ü", "ß", "T"]
-```
+## Complexity Analysis
 
-It then creates two arrays with one entry for every text position:
+Symbols used below:
 
-| Array | Meaning |
-|-------|---------|
-| `best[i]` | Lowest cost found for segmenting the first `i` symbols. |
-| `prev[i]` | Position where the final word ending at `i` begins. |
+| Symbol | Meaning |
+|--------|---------|
+| `n` | Number of text or ciphertext symbols |
+| `A` | Alphabet size, 26 or 30 |
+| `K` | Maximum tested key length, currently 10 |
+| `k` | One selected key length |
+| `L` | Longest known word |
+| `D` | Total size of the dictionary |
+| `U` | Total size of the unigram-frequency input |
 
-`best[0]` is `0` because segmenting empty text costs nothing. Every other entry
-starts at infinity.
+| Operation | Time | Extra space |
+|-----------|------|-------------|
+| `symbol_to_char` | `O(A)` | `O(1)` |
+| `extract_letters` | `O(n * A)` | `O(n)` |
+| `encode`, `decode` | `O(n * A)` | `O(n)` |
+| `calculate_frequencies` | `O(D * A)` | `O(A)` |
+| Kasiski examination | `O(n * K)` | `O(n + A^3)` |
+| Friedman test | `O(K * n + A * K^2)` | `O(A + K)` |
+| Frequency analysis | `O(n + k * A^2)` | `O(A + k)` |
+| Dictionary scoring | `O(n * L^2)` worst case | `O(L)` |
+| `WordSegmenter::build` | `O(U + D)` average | `O(U + D)` |
+| `WordSegmenter::segment` | `O(n * L^2)` worst case | `O(n + L)` |
 
-For each ending position, the algorithm grows possible words leftwards, up to
-`max_word_length`. A candidate is accepted when it is a known word, or when it
-is one unknown symbol. Its complete score is:
-
-```text
-score = best[start] + cost(candidate_word)
-```
-
-If this score is lower than `best[end]`, the algorithm stores it and records
-`start` in `prev[end]`.
-
-For example, after considering `"THECAT"`:
-
-```text
-best[3] = cost("THE")
-best[6] = best[3] + cost("CAT")
-prev[6] = 3
-```
-
-After all positions are processed, `Segment` follows `prev` backwards from the
-end to recover the chosen words. Because this produces words in reverse order,
-it traverses them backwards once more while joining them with spaces.
-
-##### `Segment(alphabet, text)`
-
-The static overload is a convenience wrapper. It obtains the dictionary and
-unigram path stored by the resource-aware `Alphabet`, builds a temporary
-segmenter, and immediately segments the text:
-
-```text
-Alphabet resources -> Build -> dynamic programming -> reconstructed words
-```
-
-The overall segmentation flow is:
-
-```text
-frequency list + dictionary -> Build -> word costs and maximum word length
-spaceless UTF-8 text -> Alphabet tokenization -> dynamic programming
-best/prev arrays -> reconstruction -> text with spaces
-```
+Because `A` and `K` are small fixed values, encryption, decryption, and the
+main cracking algorithms behave effectively linearly with text length.
+Dictionary loading and segmentation can dominate for large language resources.
 
 ## Testing
 
-The suite contains 30 Doctest cases plus five CTest entries. It covers alphabet
-conversion, English and German encryption, known answers, key recovery, sample
-files, frequency caches, CLI behavior, and language-specific segmentation
-limits.
+The project uses the single-header Doctest framework for unit tests and CTest
+for running the complete suite.
 
 ```sh
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+The tests cover:
+
+- English and German alphabet conversion;
+- multiple integral index types for `symbol_to_char`;
+- encryption and decryption, including UTF-8 symbols;
+- Kasiski, Friedman, and frequency-analysis helpers;
+- complete key recovery;
+- frequency-cache validation;
+- dictionary scoring and word segmentation;
+- CLI execution against sample files.
 
 Run with AddressSanitizer and UndefinedBehaviorSanitizer:
 
@@ -504,38 +306,43 @@ cmake --build build-san
 ctest --test-dir build-san --output-on-failure
 ```
 
-## Benchmark and Linting
+## Benchmark
+
+The standalone benchmark measures how the key-recovery algorithms scale with
+synthetic ciphertext:
 
 ```sh
 cmake --build build --target vigenere_bench
 ./build/vigenere/vigenere_bench
 ```
 
-On macOS, Homebrew installs LLVM as keg-only. Install it and add its tools to
-the shell path:
+## Formatting and Static Analysis
+
+Formatting:
 
 ```sh
-brew install llvm
-echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-Homebrew LLVM may also need the active Xcode SDK paths to find the macOS C++
-standard-library headers:
-
-```sh
-SDK="$(xcrun --show-sdk-path)"
-clang-tidy -p build vigenere/src/main.cpp vigenere/src/*.hpp \
-  --extra-arg=-isysroot --extra-arg="$SDK" \
-  --extra-arg=-isystem --extra-arg="$SDK/usr/include/c++/v1"
-
 clang-format --dry-run --Werror vigenere/src/*.cpp vigenere/src/*.hpp \
   vigenere/{tests/test_vigenere.cpp,bench/bench_vigenere.cpp}
 ```
 
+Static analysis on macOS with Homebrew LLVM:
+
+```sh
+SDK="$(xcrun --show-sdk-path)"
+/opt/homebrew/opt/llvm/bin/clang-tidy -p build \
+  vigenere/src/*.cpp vigenere/src/*.hpp \
+  --extra-arg=-isysroot --extra-arg="$SDK" \
+  --extra-arg=-isystem --extra-arg="$SDK/usr/include/c++/v1"
+```
+
+More tooling details are available in [`TOOLING.md`](TOOLING.md).
+
 ## Limitations
 
-- Input should be uppercase. Lowercase letters are preserved but not encrypted.
-- Supported key lengths are limited to 10.
-- Cracking is statistical and requires enough ciphertext for reliable results.
-- The selected language must match the alphabet used during encryption.
+- Input should be uppercase; lowercase message letters are preserved rather
+  than encrypted.
+- Automatic cracking only tests key lengths from 1 to 10.
+- Statistical key recovery requires enough ciphertext to identify language
+  patterns reliably.
+- The selected language must match the alphabet and language used for
+  encryption.

@@ -1,14 +1,4 @@
-// Lightweight standalone benchmark — no external framework. Measures the
-// scaling of the cracking building blocks on synthetic ciphertext of growing
-// size, so you can see the O(n) behaviour of Kasiski/Friedman and the
-// constant cost of frequency analysis.
-//
-// Build (from repo root):
-//   g++ -std=c++23 -O2 -Ivigenere/src vigenere/bench/bench_vigenere.cpp -o bench
-//   ./bench
-//
-// For whole-program timing use hyperfine on the main binary instead:
-//   hyperfine './vigenere en vigenere/data/long-encrypted.txt'
+// Measures how the cracking algorithms scale with synthetic ciphertext.
 
 #include "vigenere.hpp"
 
@@ -19,16 +9,35 @@
 
 using Clock = std::chrono::steady_clock;
 
-template <typename F> static double TimeMs(F&& f, int repeats) {
+template <typename F> static double time_ms(F&& f, int repeats) {
     auto start = Clock::now();
-    for (int r = 0; r < repeats; ++r)
+    for (int r = 0; r < repeats; ++r) {
         f();
+    }
     auto end = Clock::now();
     return std::chrono::duration<double, std::milli>(end - start).count() / repeats;
 }
 
+class VigenereBenchmarkAccess {
+  public:
+    static std::size_t find_length_kasiski(const std::string& encoded, std::size_t symbol_count) {
+        return VigenereCipher::find_length_kasiski(encoded, symbol_count);
+    }
+
+    static std::size_t find_length_friedman(const std::string& encoded,
+                                            const std::vector<double>& frequencies) {
+        return VigenereCipher::find_length_friedman(encoded, frequencies);
+    }
+
+    static std::string frequency_analysis(const std::string& encoded,
+                                          std::size_t key_length,
+                                          const std::vector<double>& frequencies) {
+        return VigenereCipher::frequency_analysis(encoded, key_length, frequencies);
+    }
+};
+
 int main() {
-    Alphabet en = Alphabet::English();
+    Alphabet en = Alphabet::english();
 
     // English-like reference distribution so the synthetic text isn't uniform.
     std::vector<double> freq = {0.082, 0.015, 0.028, 0.043, 0.127, 0.022, 0.020, 0.061, 0.070,
@@ -42,17 +51,20 @@ int main() {
 
     for (int n : {1000, 5000, 20000, 80000, 320000}) {
         std::string text(n, 'A');
-        for (char& c : text)
-            c = (char)('A' + letter(rng));
+        for (char& c : text) {
+            c = static_cast<char>('A' + letter(rng));
+        }
 
-        std::string cipher = VigenereCypher("SECRETKEY", en).encode(text);
-        std::string letters = en.ExtractLetters(cipher);
+        std::string cipher = VigenereCipher("SECRETKEY", en).encode(text);
+        std::string letters = en.extract_letters(cipher);
 
         int repeats = std::max(1, 2000000 / n);
-        double t_kas =
-            TimeMs([&] { VigenereCypher::FindLengthKasiski(letters, en.size()); }, repeats);
-        double t_fri = TimeMs([&] { VigenereCypher::FindLengthFriedman(letters, freq); }, repeats);
-        double t_fa = TimeMs([&] { VigenereCypher::FrequentAnalysis(letters, 9, freq); }, repeats);
+        double t_kas = time_ms(
+            [&] { VigenereBenchmarkAccess::find_length_kasiski(letters, en.size()); }, repeats);
+        double t_fri =
+            time_ms([&] { VigenereBenchmarkAccess::find_length_friedman(letters, freq); }, repeats);
+        double t_fa = time_ms(
+            [&] { VigenereBenchmarkAccess::frequency_analysis(letters, 9, freq); }, repeats);
 
         std::cout << std::left << std::setw(12) << n << std::setw(14) << std::fixed
                   << std::setprecision(4) << t_kas << std::setw(14) << t_fri << std::setw(16)

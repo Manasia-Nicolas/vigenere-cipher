@@ -95,6 +95,7 @@ vigenere_bench_EXTERNAL_OBJECTS =
 
 vigenere/vigenere_bench: vigenere/CMakeFiles/vigenere_bench.dir/bench/bench_vigenere.cpp.o
 vigenere/vigenere_bench: vigenere/CMakeFiles/vigenere_bench.dir/build.make
+vigenere/vigenere_bench: vigenere/libvigenere_core.a
 vigenere/vigenere_bench: vigenere/CMakeFiles/vigenere_bench.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable vigenere_bench"
 	cd /Users/nicolas/Desktop/Proiecte/C++/itc26project-go54yid/build/vigenere && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/vigenere_bench.dir/link.txt --verbose=$(VERBOSE)

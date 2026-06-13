@@ -8,8 +8,10 @@ top-level `CMakeLists.txt`).
 ```
 vigenere/
   src/
-    alphabet.hpp      alphabet symbols, UTF-8 conversion, language frequencies
-    vigenere.hpp      VigenereCypher encryption and cracking logic
+    alphabet.hpp      alphabet symbols and UTF-8 conversion
+    language_resources.hpp/.cpp  dictionary, frequencies, and scoring
+    file_io.hpp       reusable text and word-list loading
+    vigenere.hpp      VigenereCipher encryption and cracking logic
     segmenter.hpp     dynamic-programming word-boundary recovery
     main.cpp          CLI front-end
   tests/
@@ -22,11 +24,10 @@ vigenere/
   .clang-tidy         static-analysis checks
 ```
 
-Splitting the logic into the three headers makes all three activities possible:
-tests and the benchmark include the relevant headers directly, and the cracking
-building blocks (`FindLengthKasiski`, `FindLengthFriedman`, `FrequentAnalysis`,
-and `CountDictionaryWords`) are `public static` so they can be tested and
-benchmarked in isolation, not only through `Crack`.
+The cracking building blocks are private implementation details of
+`VigenereCipher`. The test and benchmark translation units define narrow friend
+accessors so they can exercise those algorithms directly without expanding the
+production public API.
 
 ## 1. Unit testing — doctest + CTest
 
@@ -35,13 +36,13 @@ Configure once, then build and test:
 ```sh
 cmake -S . -B build -DPROJECT_TOPIC=VIGENERE
 cmake --build build
-ctest --test-dir build/vigenere --output-on-failure
+ctest --test-dir build --output-on-failure
 ```
 
 The suite (`tests/test_vigenere.cpp`) covers:
 
-- **Alphabet**: sizes, UTF-8 `SymbolToChar`/`CharToSymbol` round-trips,
-  `ExtractLetters`, dictionary `LetterFrequencies`, and construction-time
+- **Alphabet**: sizes, UTF-8 `symbol_to_char`/`char_to_symbol` round-trips,
+  `extract_letters`, dictionary `calculate_frequencies`, and construction-time
   frequency loading (valid cache reused; empty / garbage / wrong-alphabet
   caches rejected and recomputed).
 - **Cipher**: `encode`/`decode` round trips (including German umlauts in both
@@ -56,7 +57,8 @@ The suite (`tests/test_vigenere.cpp`) covers:
   symbols, empty input, German UTF-8 symbols, controlled unigram normalization,
   and cracking then segmenting spaceless text.
 - **CLI integration**: normal and spaceless sample files run through the built
-  executable, verifying the organized `data/` paths and expected output.
+  executable, verifying the organized `data/` paths, preserved file whitespace,
+  and expected output.
 
 The test target runs with the repo root as its working directory (set via
 `WORKING_DIRECTORY` in CMake), so it reads the same data files as the program.
@@ -71,7 +73,7 @@ cmake --build build-san --target vigenere_tests
 
 This builds the tests with AddressSanitizer + UndefinedBehaviorSanitizer.
 It catches out-of-bounds reads (e.g. a stray non-symbol reaching
-`FindLengthKasiski`) and integer/UB issues that normal runs pass over.
+`find_length_kasiski`) and integer/UB issues that normal runs pass over.
 
 ## 2. Linting and formatting — clang-tidy + clang-format
 
@@ -79,8 +81,10 @@ Static analysis (install LLVM first: `brew install llvm`, which provides
 `clang-tidy`):
 
 ```sh
-clang-tidy -p build vigenere/src/main.cpp
-clang-tidy -p build vigenere/src/*.hpp
+SDK="$(xcrun --show-sdk-path)"
+clang-tidy -p build vigenere/src/*.cpp vigenere/src/*.hpp \
+  --extra-arg=-isysroot --extra-arg="$SDK" \
+  --extra-arg=-isystem --extra-arg="$SDK/usr/include/c++/v1"
 ```
 
 Enabled check groups are in `.clang-tidy` (`bugprone`, `performance`,
@@ -108,10 +112,10 @@ cmake --build build --target vigenere_bench
 ./build/vigenere/vigenere_bench
 ```
 
-Runs `FindLengthKasiski`, `FindLengthFriedman` and `FrequentAnalysis` over
+Runs `find_length_kasiski`, `find_length_friedman` and `frequency_analysis` over
 synthetic ciphertext from 1 k to 320 k letters. Times grow linearly with the
-text size — confirming the O(n) Kasiski (hash-table trigram lookup) and the
-O(K·n) Friedman, while `FrequentAnalysis` stays cheap.
+text size — confirming the O(n) Kasiski (direct-address trigram lookup) and the
+O(K·n) Friedman, while `frequency_analysis` stays cheap.
 
 Example (Apple Silicon, -O2):
 

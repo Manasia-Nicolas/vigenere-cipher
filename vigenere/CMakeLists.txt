@@ -4,16 +4,17 @@ file(COPY_FILE "${CMAKE_CURRENT_SOURCE_DIR}/wordlist-en_US/en_US.txt"
 # Warning flags applied to all targets in this directory.
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# ---- shared header-only library --------------------------------------------
+# ---- shared core library ---------------------------------------------------
 set(VIGENERE_PUBLIC_HEADERS
     src/alphabet.hpp
+    src/file_io.hpp
+    src/language_resources.hpp
     src/segmenter.hpp
     src/vigenere.hpp)
 
-add_library(vigenere_core INTERFACE)
-target_sources(vigenere_core INTERFACE ${VIGENERE_PUBLIC_HEADERS})
-target_include_directories(vigenere_core INTERFACE src)
-target_compile_features(vigenere_core INTERFACE "cxx_std_${PROJECT_CXX_STANDARD}")
+add_library(vigenere_core STATIC src/language_resources.cpp ${VIGENERE_PUBLIC_HEADERS})
+target_include_directories(vigenere_core PUBLIC src)
+target_compile_features(vigenere_core PUBLIC "cxx_std_${PROJECT_CXX_STANDARD}")
 
 # ---- main program ----------------------------------------------------------
 add_executable(vigenere src/main.cpp)
@@ -57,15 +58,19 @@ set_tests_properties(vigenere_cli_spaceless PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     PASS_REGULAR_EXPRESSION "3.BY THE SIDE")
 
-# Optional sanitizer build of the tests: -DVIGENERE_SANITIZE=ON
-option(VIGENERE_SANITIZE "Build tests with Address/UB sanitizers" OFF)
-if(VIGENERE_SANITIZE)
-  target_compile_options(vigenere_tests PRIVATE -fsanitize=address,undefined -g)
-  target_link_options(vigenere_tests PRIVATE -fsanitize=address,undefined)
-endif()
-
 # ---- benchmark -------------------------------------------------------------
 add_executable(vigenere_bench bench/bench_vigenere.cpp)
 target_link_libraries(vigenere_bench PRIVATE vigenere_core)
 target_compile_features(vigenere_bench PRIVATE "cxx_std_${PROJECT_CXX_STANDARD}")
 target_compile_options(vigenere_bench PRIVATE -O2)
+
+# Optional sanitizer build: -DVIGENERE_SANITIZE=ON
+option(VIGENERE_SANITIZE "Build targets with Address/UB sanitizers" OFF)
+if(VIGENERE_SANITIZE)
+  foreach(target vigenere_core vigenere vigenere_tests vigenere_bench)
+    target_compile_options(${target} PRIVATE -fsanitize=address,undefined -g)
+  endforeach()
+  foreach(target vigenere vigenere_tests vigenere_bench)
+    target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+  endforeach()
+endif()

@@ -58,6 +58,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
+  "vigenere/CMakeFiles/vigenere_core.dir/DependInfo.cmake"
   "vigenere/CMakeFiles/vigenere.dir/DependInfo.cmake"
   "vigenere/CMakeFiles/vigenere_tests.dir/DependInfo.cmake"
   "vigenere/CMakeFiles/vigenere_bench.dir/DependInfo.cmake"
